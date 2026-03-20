@@ -9,6 +9,7 @@ import pt.unl.fct.iadi.novaevents.domain.enums.ClubCategory
 import pt.unl.fct.iadi.novaevents.domain.Event
 import pt.unl.fct.iadi.novaevents.domain.enums.EventType
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -48,8 +49,54 @@ class NovaEventsService {
     )
 
     private val events = ConcurrentHashMap<Long, ConcurrentHashMap<Long, Event>>(5)
-    //private val eventsById = ConcurrentHashMap<Long, Event>()
-    private val nextEventId = AtomicLong(0)
+    private var nextEventId = 1L
+    private val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
+
+    init {
+        // Chess Club
+        addEvent(1L, "Beginner's Chess Workshop", "10 Mar 2026", "Room A101", EventType.WORKSHOP)
+        addEvent(1L, "Spring Chess Tournament", "05 Apr 2026", "Main Hall", EventType.COMPETITION)
+        addEvent(1L, "Advanced Openings Talk", "20 May 2026", "Room A101", EventType.TALK)
+
+        // Robotics Club
+        addEvent(2L, "Arduino Intro Workshop", "15 Mar 2026", "Engineering Lab 2", EventType.WORKSHOP)
+        addEvent(2L, "RoboCup Preparation Meeting", "28 Mar 2026", "Engineering Lab 1", EventType.MEETING)
+        addEvent(2L, "Sensor Integration Talk", "22 Apr 2026", "Auditorium B", EventType.TALK)
+        addEvent(2L, "Regional Robotics Competition", "01 Jun 2026", "Sports Hall", EventType.COMPETITION)
+
+        // Photography Club
+        addEvent(3L, "Night Photography Workshop", "22 Mar 2026", "Campus Rooftop", EventType.WORKSHOP)
+        addEvent(3L, "Portrait Photography Talk", "14 Apr 2026", "Arts Studio 3", EventType.TALK)
+        addEvent(3L, "Photo Walk & Social", "09 May 2026", "Main Entrance", EventType.SOCIAL)
+
+        // Hiking & Outdoors Club
+        addEvent(4L, "Serra da Arrábida Hike", "29 Mar 2026", "Bus Stop Central", EventType.OTHER)
+        addEvent(4L, "Trail Safety Workshop", "08 Apr 2026", "Room C205", EventType.WORKSHOP)
+        addEvent(4L, "Spring Camping Trip", "15 May 2026", "Bus Stop Central", EventType.SOCIAL)
+
+        // Film Society
+        addEvent(5L, "Kubrick Retrospective Screening", "18 Mar 2026", "Cinema Room", EventType.SOCIAL)
+        addEvent(5L, "Screenwriting Workshop", "30 Apr 2026", "Arts Studio 1", EventType.WORKSHOP)
+    }
+
+    private fun addEvent(clubId: Long, name: String, dateStr: String, location: String, type: EventType) {
+        // Ensure the club's inner map exists
+        val clubEvents = events.computeIfAbsent(clubId) { ConcurrentHashMap() }
+
+        // Create the event
+        val event = Event(
+            id = nextEventId++,
+            clubId = clubId,
+            name = name,
+            date = LocalDate.parse(dateStr, formatter),
+            location = location,
+            type = type,
+            description = name
+        )
+
+        // Put it in the inner map with the event ID as key
+        clubEvents[event.id] = event
+    }
 
     fun getAllClubs() : List<Club> {
         return clubs
@@ -137,7 +184,7 @@ class NovaEventsService {
             ?: throw NoSuchElementException("Club not found")
 
         val newEvent = Event(
-            id = nextEventId.getAndIncrement(),
+            id = nextEventId++,
             clubId = clubId,
             name = eventForm.name,
             date = eventForm.date!!,
