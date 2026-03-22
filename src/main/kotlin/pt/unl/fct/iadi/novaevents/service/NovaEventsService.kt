@@ -183,6 +183,12 @@ class NovaEventsService {
         val club = clubs.find { it.id == clubId }
             ?: throw NoSuchElementException("Club not found")
 
+        if (events.values
+                .flatMap { it.values }
+                .any { it.name.equals(eventForm.name, ignoreCase = true) }) {
+            throw IllegalArgumentException("An event with this name already exists")
+        }
+
         val newEvent = Event(
             id = nextEventId++,
             clubId = clubId,
@@ -212,6 +218,12 @@ class NovaEventsService {
         val clubEvents = events[clubId] ?: throw NoSuchElementException("Club not found")
 
         val existingEvent = clubEvents[eventId] ?: throw NoSuchElementException("Event not found")
+
+        if (events.values
+                .flatMap { it.values }
+                .any { it.name.equals(eventForm.name, ignoreCase = true) }) {
+            throw IllegalArgumentException("An event with this name already exists")
+        }
 
         val updated = Event(
             id = eventId,

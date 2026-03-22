@@ -86,9 +86,18 @@ class NovaEventsController(private val service: NovaEventsService) {
             return "events/create"
         }
 
-        val eventCreated = service.createEvent(id, event);
-
-        return "redirect:/clubs/${id}/events/${eventCreated.id}"
+        try {
+            val eventCreated = service.createEvent(id, event);
+            return "redirect:/clubs/${id}/events/${eventCreated.id}"
+        } catch (e: IllegalArgumentException) {
+            bindingResult.rejectValue(
+                "name",
+                "error.event",
+                e.message ?: "Error"
+            )
+            model.addAttribute("clubId", id)
+            return "events/create"
+        }
     }
 
     @GetMapping("/clubs/{clubId}/events/{eventId}/edit")
@@ -120,13 +129,24 @@ class NovaEventsController(private val service: NovaEventsService) {
             return "events/edit"
         }
 
-        val eventEdited = service.editEvent(clubId, eventId, event);
+        try {
+            val eventEdited = service.editEvent(clubId, eventId, event);
 
-        var model = ModelMap();
+            var model = ModelMap();
 
-        model.addAttribute("event", eventEdited)
+            model.addAttribute("event", eventEdited)
 
-        return "redirect:/clubs/${eventEdited.clubId}/events/${eventEdited.id}"
+            return "redirect:/clubs/${eventEdited.clubId}/events/${eventEdited.id}"
+        } catch (e: IllegalArgumentException) {
+            bindingResult.rejectValue(
+                "name",
+                "error.event",
+                e.message ?: "Error"
+            )
+            model.addAttribute("clubId", clubId)
+            model.addAttribute("eventId", eventId)
+            return "events/create"
+        }
     }
 
     @GetMapping("/clubs/{clubId}/events/{eventId}/delete")
