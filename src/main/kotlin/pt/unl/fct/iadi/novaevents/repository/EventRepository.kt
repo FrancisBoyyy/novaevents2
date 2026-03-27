@@ -25,13 +25,13 @@ interface EventRepository : JpaRepository<Event, Long> {
     SELECT e FROM Event e
     JOIN FETCH e.club
     JOIN FETCH e.type
-    WHERE (:type IS NULL OR e.type.name = :type)
+    WHERE (:typeId IS NULL OR e.type.id = :typeId)
       AND (:clubId IS NULL OR e.club.id = :clubId)
       AND (:from IS NULL OR e.date >= :from)
       AND (:to IS NULL OR e.date <= :to)
     """)
     fun findWithFilters(
-        @Param("type") type: String?,
+        @Param("typeId") typeId: Long?,
         @Param("clubId") clubId: Long?,
         @Param("from") from: LocalDate?,
         @Param("to") to: LocalDate?

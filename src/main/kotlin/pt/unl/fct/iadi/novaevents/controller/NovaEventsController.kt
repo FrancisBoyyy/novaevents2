@@ -45,7 +45,7 @@ class NovaEventsController(private val service: NovaEventsService) {
 
     @GetMapping("/events")
     fun listEvents(
-        @RequestParam(required = false) type: EventType?,
+        @RequestParam(required = false) typeId: Long?,
         @RequestParam(required = false) clubId: Long?,
         @RequestParam(required = false) from: LocalDate?,
         @RequestParam(required = false) to: LocalDate?,
