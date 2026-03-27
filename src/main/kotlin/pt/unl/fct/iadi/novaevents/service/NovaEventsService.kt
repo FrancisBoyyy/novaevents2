@@ -2,9 +2,9 @@ package pt.unl.fct.iadi.novaevents.service
 
 import org.springframework.stereotype.Service
 import pt.unl.fct.iadi.novaevents.controller.dto.request.EventForm
+import pt.unl.fct.iadi.novaevents.controller.dto.response.ClubResponse
 import pt.unl.fct.iadi.novaevents.controller.dto.response.DetailedClubResponse
 import pt.unl.fct.iadi.novaevents.controller.dto.response.EventResponse
-import pt.unl.fct.iadi.novaevents.domain.Club
 import pt.unl.fct.iadi.novaevents.domain.Event
 import pt.unl.fct.iadi.novaevents.domain.EventType
 import pt.unl.fct.iadi.novaevents.domain.EventTypeRepository
@@ -18,93 +18,18 @@ class NovaEventsService(
     private val eventRepository: EventRepository,
     private val eventTypeRepository: EventTypeRepository
 ) {
-    /**
-    private val clubs = listOf<Club>(
-        Club(
-            1,
-            "Chess Club",
-            "Chess Club",
-            ClubCategory.ACADEMIC
-        ),
-        Club(
-            2,
-            "Robotics Club",
-            "The Robotics Club is the place to turn ideas into machines",
-            ClubCategory.TECHNOLOGY
-        ),
-        Club(
-            3,
-            "Photography Club",
-            "Photography Club",
-            ClubCategory.ARTS
-        ),
-        Club(
-            4,
-            "Hiking & Outdoors Club",
-            "Hiking & Outdoors Club",
-            ClubCategory.SPORTS
-        ),
-        Club(
-            5,
-            "Film Society",
-            "Film Society",
-            ClubCategory.CULTURAL
-        )
-    )
+    fun getAllClubs() : List<ClubResponse> {
+        val clubs = clubRepository.findAll()
 
-    private val events = ConcurrentHashMap<Long, ConcurrentHashMap<Long, Event>>(5)
-    private var nextEventId = 1L
-    private val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
-
-    init {
-        // Chess Club
-        addEvent(1L, "Beginner's Chess Workshop", "10 Mar 2026", "Room A101", EventType.WORKSHOP)
-        addEvent(1L, "Spring Chess Tournament", "05 Apr 2026", "Main Hall", EventType.COMPETITION)
-        addEvent(1L, "Advanced Openings Talk", "20 May 2026", "Room A101", EventType.TALK)
-
-        // Robotics Club
-        addEvent(2L, "Arduino Intro Workshop", "15 Mar 2026", "Engineering Lab 2", EventType.WORKSHOP)
-        addEvent(2L, "RoboCup Preparation Meeting", "28 Mar 2026", "Engineering Lab 1", EventType.MEETING)
-        addEvent(2L, "Sensor Integration Talk", "22 Apr 2026", "Auditorium B", EventType.TALK)
-        addEvent(2L, "Regional Robotics Competition", "01 Jun 2026", "Sports Hall", EventType.COMPETITION)
-
-        // Photography Club
-        addEvent(3L, "Night Photography Workshop", "22 Mar 2026", "Campus Rooftop", EventType.WORKSHOP)
-        addEvent(3L, "Portrait Photography Talk", "14 Apr 2026", "Arts Studio 3", EventType.TALK)
-        addEvent(3L, "Photo Walk & Social", "09 May 2026", "Main Entrance", EventType.SOCIAL)
-
-        // Hiking & Outdoors Club
-        addEvent(4L, "Serra da Arrábida Hike", "29 Mar 2026", "Bus Stop Central", EventType.OTHER)
-        addEvent(4L, "Trail Safety Workshop", "08 Apr 2026", "Room C205", EventType.WORKSHOP)
-        addEvent(4L, "Spring Camping Trip", "15 May 2026", "Bus Stop Central", EventType.SOCIAL)
-
-        // Film Society
-        addEvent(5L, "Kubrick Retrospective Screening", "18 Mar 2026", "Cinema Room", EventType.SOCIAL)
-        addEvent(5L, "Screenwriting Workshop", "30 Apr 2026", "Arts Studio 1", EventType.WORKSHOP)
-    }
-
-    private fun addEvent(clubId: Long, name: String, dateStr: String, location: String, type: EventType) {
-        // Ensure the club's inner map exists
-        val clubEvents = events.computeIfAbsent(clubId) { ConcurrentHashMap() }
-
-        // Create the event
-        val event = Event(
-            id = nextEventId++,
-            clubId = clubId,
-            name = name,
-            date = LocalDate.parse(dateStr, formatter),
-            location = location,
-            type = type,
-            description = name
-        )
-
-        // Put it in the inner map with the event ID as key
-        clubEvents[event.id] = event
-    }
-    */
-
-    fun getAllClubs() : List<Club> {
-        return clubRepository.findAll()
+        return clubs.map {
+            club -> ClubResponse(
+                id = club.id!!,
+                name = club.name!!,
+                description = club.description!!,
+                category = club.category!!,
+                eventCount = eventRepository.countByClubId(club.id!!),
+            )
+        }
     }
 
     fun getClubDetails(clubId: Long) : DetailedClubResponse {

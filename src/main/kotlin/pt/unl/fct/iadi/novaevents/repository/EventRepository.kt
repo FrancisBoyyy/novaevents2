@@ -36,4 +36,6 @@ interface EventRepository : JpaRepository<Event, Long> {
         @Param("from") from: LocalDate?,
         @Param("to") to: LocalDate?
     ): List<Event>
+
+    fun countByClubId(clubId: Long): Int
 }
