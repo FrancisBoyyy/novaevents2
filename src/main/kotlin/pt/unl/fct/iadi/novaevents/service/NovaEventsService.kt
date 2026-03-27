@@ -19,7 +19,7 @@ class NovaEventsService(
     private val eventTypeRepository: EventTypeRepository
 ) {
     fun getAllClubs() : List<ClubResponse> {
-        val clubs = clubRepository.findAll()
+        val clubs = clubRepository.findAllWithEvents()
 
         return clubs.map {
             club -> ClubResponse(
@@ -27,7 +27,7 @@ class NovaEventsService(
                 name = club.name!!,
                 description = club.description!!,
                 category = club.category!!,
-                eventCount = eventRepository.countByClubId(club.id!!),
+                eventCount = club.events.size,
             )
         }
     }
