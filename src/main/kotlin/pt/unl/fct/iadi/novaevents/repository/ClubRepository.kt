@@ -1,4 +1,6 @@
 package pt.unl.fct.iadi.novaevents.repository
 
-class ClubRepository {
-}
+import org.springframework.data.jpa.repository.JpaRepository
+import pt.unl.fct.iadi.novaevents.domain.Club
+
+interface ClubRepository : JpaRepository<Club, Long> {}

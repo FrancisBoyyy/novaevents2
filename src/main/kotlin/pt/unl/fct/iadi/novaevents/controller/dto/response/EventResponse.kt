@@ -1,6 +1,5 @@
 package pt.unl.fct.iadi.novaevents.controller.dto.response
 
-import pt.unl.fct.iadi.novaevents.domain.enums.EventType
 import java.time.LocalDate
 
 data class EventResponse(
@@ -10,7 +9,7 @@ data class EventResponse(
     val name: String,
     val date: LocalDate,
     val location: String,
-    val type: EventType,
+    val type: String,
     val description: String
 ) {
 }

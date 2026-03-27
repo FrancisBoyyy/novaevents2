@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import pt.unl.fct.iadi.novaevents.service.NovaEventsService
 import pt.unl.fct.iadi.novaevents.controller.dto.request.EventForm
-import pt.unl.fct.iadi.novaevents.domain.enums.EventType
+import pt.unl.fct.iadi.novaevents.domain.EventType
 import java.time.LocalDate
 
 @Controller
@@ -54,9 +54,11 @@ class NovaEventsController(private val service: NovaEventsService) {
 
         val events = service.getAllEvents(type, clubId, from, to)
         val clubs = service.getAllClubs()
+        val eventTypes = service.getEventTypes()
 
         model.addAttribute("events", events)
         model.addAttribute("clubs", clubs)
+        model.addAttribute("eventTypes", eventTypes)
 
         return "events/list"
     }
@@ -74,8 +76,10 @@ class NovaEventsController(private val service: NovaEventsService) {
 
     @GetMapping("/clubs/{clubId}/events/create")
     fun createEvent(@PathVariable clubId: Long, model: Model): String{
+        val eventTypes = service.getEventTypes()
         model.addAttribute("event", EventForm())
         model.addAttribute("clubId", clubId)
+        model.addAttribute("eventTypes", eventTypes)
         return "events/create"
     }
 
@@ -112,6 +116,8 @@ class NovaEventsController(private val service: NovaEventsService) {
 
         var event = service.getEventDetails(clubId, eventId)
 
+        val eventTypes = service.getEventTypes()
+
         var eventForm = EventForm(
             name = event.name,
             date = event.date,
@@ -123,6 +129,7 @@ class NovaEventsController(private val service: NovaEventsService) {
         model.addAttribute("event", eventForm)
         model.addAttribute("clubId", clubId)
         model.addAttribute("eventId", eventId)
+        model.addAttribute("eventTypes", eventTypes)
 
         return "events/edit"
     }

@@ -5,16 +5,20 @@ import pt.unl.fct.iadi.novaevents.controller.dto.request.EventForm
 import pt.unl.fct.iadi.novaevents.controller.dto.response.DetailedClubResponse
 import pt.unl.fct.iadi.novaevents.controller.dto.response.EventResponse
 import pt.unl.fct.iadi.novaevents.domain.Club
-import pt.unl.fct.iadi.novaevents.domain.enums.ClubCategory
 import pt.unl.fct.iadi.novaevents.domain.Event
-import pt.unl.fct.iadi.novaevents.domain.enums.EventType
+import pt.unl.fct.iadi.novaevents.domain.EventType
+import pt.unl.fct.iadi.novaevents.domain.EventTypeRepository
+import pt.unl.fct.iadi.novaevents.repository.ClubRepository
+import pt.unl.fct.iadi.novaevents.repository.EventRepository
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 
 @Service
-class NovaEventsService {
+class NovaEventsService(
+    private val clubRepository: ClubRepository,
+    private val eventRepository: EventRepository,
+    private val eventTypeRepository: EventTypeRepository
+) {
+    /**
     private val clubs = listOf<Club>(
         Club(
             1,
@@ -97,38 +101,25 @@ class NovaEventsService {
         // Put it in the inner map with the event ID as key
         clubEvents[event.id] = event
     }
+    */
 
     fun getAllClubs() : List<Club> {
-        return clubs
+        return clubRepository.findAll()
     }
 
     fun getClubDetails(clubId: Long) : DetailedClubResponse {
-        val club = clubs.find { it.id == clubId } ?: throw NoSuchElementException()
+        val club = clubRepository.findById(clubId)
+            .orElseThrow { NoSuchElementException("Club not found") }
 
-        val eventList = events[clubId]?.values?.toList() ?: emptyList()
+        val events = eventRepository.findByClubId(clubId)
 
-        val eventResponseList = eventList.map { event ->
-            EventResponse(
-                id = event.id,
-                clubId = event.clubId,
-                clubName = club.name,
-                name = event.name,
-                date = event.date,
-                location = event.location,
-                type = event.type,
-                description = event.description
-            )
-        }
-
-        val detailedClub = DetailedClubResponse(
-            id = club.id,
-            name = club.name,
-            description = club.description,
-            category = club.category,
-            events = eventResponseList
+        return DetailedClubResponse(
+            id = club.id!!,
+            name = club.name!!,
+            description = club.description!!,
+            category = club.category!!,
+            events = events.map { it.toResponse(club.name!!) }
         )
-
-        return detailedClub
     }
 
     fun getAllEvents(
@@ -137,139 +128,120 @@ class NovaEventsService {
         from: LocalDate? = null,
         to: LocalDate? = null
     ) : List<EventResponse> {
-        return events.values
-            .flatMap { it.values }
-            .asSequence()
-            .filter { type == null || it.type == type }
-            .filter { clubId == null || it.clubId == clubId }
-            .filter { from == null || !it.date.isBefore(from) }
-            .filter { to == null || !it.date.isAfter(to) }
-            .map { event ->
-                val club = clubs.find { it.id == event.clubId } ?: throw NoSuchElementException()
-                EventResponse(
-                    id = event.id,
-                    clubId = event.clubId,
-                    clubName = club.name,
-                    name = event.name,
-                    date = event.date,
-                    location = event.location,
-                    type = event.type,
-                    description = event.description
-                )
-            }
-            .toList()
+        val events = eventRepository.findWithFilters(type?.name, clubId, from, to)
+
+        return events.map { event ->
+            EventResponse(
+                id = event.id!!,
+                clubId = event.club!!.id!!,
+                clubName = event.club!!.name!!,
+                name = event.name!!,
+                date = event.date!!,
+                location = event.location!!,
+                type = event.type!!.name!!,
+                description = event.description!!
+            )
+        }
     }
 
     fun getEventDetails(clubId: Long, eventId: Long): EventResponse {
-        val clubEvents = events[clubId] ?: throw NoSuchElementException("Club not found")
+        val club = clubRepository.findById(clubId)
+            .orElseThrow { NoSuchElementException("Club not found") }
 
-        val event = clubEvents[eventId] ?: throw NoSuchElementException("Event not found")
-
-        val club = clubs.find { it.id == clubId } ?: throw NoSuchElementException("Club not found")
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { NoSuchElementException("Event not found") }
 
         return EventResponse(
-            id = event.id,
-            clubId = event.clubId,
-            clubName = club.name,
-            name = event.name,
-            date = event.date,
-            location = event.location,
-            type = event.type,
-            description = event.description
+            id = event.id!!,
+            clubId = event.club!!.id!!,
+            clubName = club.name!!,
+            name = event.name!!,
+            date = event.date!!,
+            location = event.location!!,
+            type = event.type!!.name!!,
+            description = event.description!!
         )
     }
 
     fun createEvent(clubId: Long, eventForm: EventForm): EventResponse {
-        val club = clubs.find { it.id == clubId }
-            ?: throw NoSuchElementException("Club not found")
+        val club = clubRepository.findById(clubId)
+            .orElseThrow { NoSuchElementException("Club not found") }
 
-        if (events.values
-                .flatMap { it.values }
-                .any { it.name.equals(eventForm.name, ignoreCase = true) }) {
+        val type = eventTypeRepository.findByName(eventForm.type!!)
+            ?: eventTypeRepository.save(EventType(name = eventForm.type!!))
+
+        if (eventRepository.existsByNameIgnoreCase(eventForm.name)) {
             throw IllegalArgumentException("An event with this name already exists")
         }
 
-        val newEvent = Event(
-            id = nextEventId++,
-            clubId = clubId,
+        val event = Event(
+            club = club,
             name = eventForm.name,
             date = eventForm.date!!,
             location = eventForm.location ?: "",
-            type = eventForm.type!!,
+            type = type,
             description = eventForm.description ?: ""
         )
 
-        val clubEvents = events.computeIfAbsent(clubId) { ConcurrentHashMap() }
-        clubEvents[newEvent.id] = newEvent
-
-        return EventResponse(
-            id = newEvent.id,
-            clubId = clubId,
-            clubName = club.name,
-            name = newEvent.name,
-            date = newEvent.date,
-            location = newEvent.location,
-            type = newEvent.type,
-            description = newEvent.description
-        )
+        val saved = eventRepository.save(event)
+        return saved.toResponse(club.name!!)
     }
 
     fun editEvent(clubId: Long, eventId: Long, eventForm: EventForm): EventResponse {
-        val clubEvents = events[clubId] ?: throw NoSuchElementException("Club not found")
+        val club = clubRepository.findById(clubId)
+            .orElseThrow { NoSuchElementException("Club not found") }
 
-        val existingEvent = clubEvents[eventId] ?: throw NoSuchElementException("Event not found")
+        val existingEvent = eventRepository.findById(eventId)
+            .orElseThrow { NoSuchElementException("Event not found") }
 
-        if (events.values
-                .flatMap { it.values }
-                .any { it.name.equals(eventForm.name, ignoreCase = true) }) {
+        val type = eventTypeRepository.findByName(eventForm.type!!)
+            ?: eventTypeRepository.save(EventType(name = eventForm.type!!))
+
+        if (eventRepository.existsByNameIgnoreCase(eventForm.name)) {
             throw IllegalArgumentException("An event with this name already exists")
         }
 
         val updated = Event(
             id = eventId,
-            clubId = clubId,
+            club = club,
             name = eventForm.name ?: existingEvent.name,
             date = eventForm.date ?: existingEvent.date,
             location = eventForm.location ?: existingEvent.location,
-            type = eventForm.type ?: existingEvent.type,
+            type = type,
             description = eventForm.description ?: existingEvent.description
         )
 
-        clubEvents[eventId] = updated
-
-        val club = clubs.find { it.id == clubId } ?: throw NoSuchElementException("Club not found")
-
-        return EventResponse(
-            id = updated.id,
-            clubId = updated.clubId,
-            clubName = club.name,
-            name = updated.name,
-            date = updated.date,
-            location = updated.location,
-            type = updated.type,
-            description = updated.description
-        )
+        val saved = eventRepository.save(updated)
+        return saved.toResponse(club.name!!)
     }
 
     fun deleteEvent(clubId: Long, eventId: Long): Long {
-        val clubEvents = events[clubId] ?: throw NoSuchElementException("Club not found")
 
-        if (clubEvents.remove(eventId) == null) {
-            throw NoSuchElementException("Event not found")
-        }
+        val club = clubRepository.findById(clubId)
+            .orElseThrow { NoSuchElementException("Club not found") }
 
-        return clubId
+        val event = eventRepository.findById(eventId)
+            .orElseThrow { NoSuchElementException("Event not found") }
+
+        eventRepository.delete(event)
+
+        return club.id?: clubId
+    }
+
+    fun getEventTypes(): List<EventType> {
+        val eventTypes = eventTypeRepository.findAll()
+        return eventTypes
     }
 
     private fun Event.toResponse(clubName: String) =
         EventResponse(
-            id = id,
-            clubId = clubId,
+            id = id!!,
+            clubId = club!!.id!!,
             clubName = clubName,
-            name = name,
-            date = date,
-            location = location,
-            type = type,
-            description = description
+            name = name!!,
+            date = date!!,
+            location = location?: "",
+            type = type!!.name!!,
+            description = description?: ""
         )
 }
